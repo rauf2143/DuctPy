@@ -1,9 +1,5 @@
 from math import sqrt, log10, pi, floor, ceil
 
-print("Python Duct Sizer v0.1.9.24")
-print("Ahsan Rauf")
-print("Enter CFM List. Enter -1 to stop. Numerical values only.")
-
 h_loss_ideal = 0.08
 density = 0.075
 viscosity = 0.0432
@@ -17,7 +13,7 @@ def secant_solver(guess, guess2, correct, func_eval):
     x1 = guess2
 
     for j in range(1, 100):
-        if abs(x1 - x0) < 0.0001:
+        if abs(x1 - x0) < 0.00001:
             x1 = x1 + correct
             return x1
 
@@ -56,9 +52,11 @@ def h_loss_func(cfm, dim1, dim2):
     return round(h_loss, 4)
 
 
-def d2_solver(cfm, limit):
-    if limit >= 100:
-        limit = limit / 25
+def d2_solver(cfm, user_limit):
+    if user_limit >= 100:
+        limit = user_limit / 25
+    else:
+        limit = user_limit
 
     def dim2_func(cfm, limit):
 
@@ -88,7 +86,7 @@ def d2_solver(cfm, limit):
         else:
             dim_inch = ceil(dim_round)
 
-        if ceiling_limit >= 100:
+        if user_limit >= 100:
             return dim_inch * 25
 
         else:
@@ -103,46 +101,57 @@ def d2_solver(cfm, limit):
     return d2_final
 
 
-def diff_sel(cfm):
-    if 0 <= cfm <= 75:
-        return 6
-    elif 76 <= cfm <= 169:
-        return 9
-    elif 170 <= cfm <= 300:
-        return 12
-    elif 301 <= cfm <= 469:
-        return 15
-    elif 470 <= cfm <= 675:
-        return 18
-    elif 676 <= cfm <= 909:
-        return 21
-    elif 910 <= cfm <= 1200:
-        return 24
-    elif 1201 <= cfm <= 1875:
-        return 30
+def diff_lim_sel(cfm, list, ceiling):
+    if list.diffuser == 1:
+        if 0 <= cfm <= 75:
+            list.diffuser = 6
+        elif 76 <= cfm <= 169:
+            list.diffuser = 9
+        elif 170 <= cfm <= 300:
+            list.diffuser = 12
+        elif 301 <= cfm <= 469:
+            list.diffuser = 15
+        elif 470 <= cfm <= 675:
+            list.diffuser = 18
+        elif 676 <= cfm <= 909:
+            list.diffuser = 21
+        elif 910 <= cfm <= 1200:
+            list.diffuser = 24
+        elif 1201 <= cfm <= 1875:
+            list.diffuser = 30
+        else:
+            print("Diffuser out of range")
+
+        if list.diffuser % 2 == 0:
+            list.local_limit = list.diffuser + 2
+        else:
+            list.local_limit = list.diffuser + 3
+
+    elif list.diffuser > 1:
+        list.local_limit = list.diffuser
+
     else:
-        print("Diffuser out of range")
-        return 0
+        list.local_limit = ceiling
 
-
-# def lim_sel(diffuser, )
 
 class Segment:
-    def __init__(self, name, cfm, parent=0, length=st_length, fitting_len=0, diffuser=0):
-        self.name = name
+    def __init__(self, number, diffuser_cfm, cfm, parent=0, diffuser=0):
+        self.number = number
         self.cfm = cfm
+        self.diffuser_cfm = diffuser_cfm
         self.diffuser = diffuser
         self.parent = parent
 
         if self.parent != 0:
-            self.name = "Branch"
+            self.type = "Branch"
             self.diffuser = 1
 
         elif self.parent == 0:
-            self.name = "Mainline"
+            self.type = "Mainline"
 
-        self.length = length
-        self.fitting_len = fitting_len
+        self.name = self.type + "[" + str(self.number) + "]"
+        self.length = 0
+        self.fitting_len = 0
 
         self.local_limit = 0
         self.width = 0
@@ -154,16 +163,16 @@ class Segment:
 
         # if self.parent != 0:
 
-        if self.diffuser == 1:
-            self.diffuser = diff_sel(self.cfm)
-            if diff_sel(self.cfm) % 2 == 0:
+        """if self.diffuser == 1:
+            self.diffuser = diff_sel(self.diffuser_cfm)
+            if diff_sel(self.diffuser_cfm) % 2 == 0:
                 self.local_limit = self.diffuser + 2
             else:
                 self.local_limit = self.diffuser + 3
         elif self.diffuser > 1:
             self.local_limit = self.diffuser
         else:
-            self.local_limit = ceiling_limit
+            self.local_limit = ceiling_limit"""
 
         self.dumdim = d2_solver(self.cfm, self.local_limit)
 
@@ -171,52 +180,80 @@ class Segment:
         self.height = min(self.dumdim, self.local_limit)
         self.h_loss = h_loss_func(self.cfm, self.width, self.height)
 
-    def print_data(self, num):
-        self.name = self.name + "[" + str(num) + "]"
-        print('{0:<20}{1:<10}{2:<10}{3:<10}{4:<10}{5:<10}{6:<10}'.format(self.name, self.cfm, self.width, self.height,
-                                                                         self.length, self.h_loss, self.diffuser))
+    def print_data(self):
+        print(
+            '{0:<20}{1:<10}{2:<10}{3:<10}{4:<10}{5:<10}{6:<10}'.format(self.name, self.cfm, self.width, self.height,
+                                                                       self.length, self.h_loss, self.diffuser))
 
     # def input_data(self)
 
+    # def lim_in(self, limit):
+    # self.local_limit = limit
 
-alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
-            "V", "W", "X", "Y", "Z"]
+def main():
+    print("Python Duct Sizer v0.1.9.25")
+    print("Author: Ahsan Rauf")
+    print("asn.rauf@gmail.com")
+    print("Enter CFM List. Enter -1 to stop. Numerical values only.")
 
-ceiling_limit = int(input("Enter overall ceiling limit: "))
-cfm_running = 0
-mainline = [Segment("dummy", 0, -1)]
-branch = [Segment("dummy", 0, -1)]
+    alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+                "V", "W", "X", "Y", "Z"]
 
-for i in range(1, 20):
-    print("Enter CFM " + str(i) + ": ")
-    cfm_inst = int(input())
+    ceiling = int(input("Enter overall ceiling limit: "))
+    cfm_running = 0
+    mainline = [Segment("dummy", 0, -1)]
+    branch = [Segment("dummy", 0, -1)]
 
-    if cfm_inst == -1:
-        break
-    else:
-        print("Enter if branch")
-        branch_if = int(input())
+    for i in range(1, 20):
+        print("Enter CFM " + str(i) + ": ")
+        cfm_inst = int(input())
 
-    cfm_running += cfm_inst
+        if cfm_inst == -1:
+            break
+        else:
+            print("Enter if branch")
+            branch_if = int(input())
 
-    if branch_if == 1:
-        branch.append(Segment(i, cfm_inst, i))
-        mainline.append(Segment(i, cfm_running))
+        cfm_running += cfm_inst
 
-    elif branch_if == 0:
-        mainline.append(Segment(i + 1, cfm_running))
+        if branch_if == 1:
+            branch.append(Segment(i, cfm_inst, cfm_inst, i))
+            mainline.append(Segment(i, cfm_inst, cfm_running))
 
-print('{0:<20}{1:<10}{2:<10}{3:<10}{4:<10}{5:<10}{6:<10}'.format('Segment', 'CFM', 'Width', 'Height', 'Length',
-                                                                 'Head Loss', 'Diffuser'))
+        elif branch_if == 0:
+            mainline.append(Segment(i, cfm_inst, cfm_running, 0, 1))
 
-for i in range(1, len(mainline)):
-    mainline[i].solve_branch()
-    mainline[i].print_data(i)
+    print('{0:<20}{1:<10}{2:<10}{3:<10}{4:<10}{5:<10}{6:<10}'.format('Segment', 'CFM', 'Width', 'Height', 'Length',
+                                                                     'Head Loss', 'Diffuser'))
 
-for i in range(1, len(branch)):
-    branch[i].solve_branch()
-    branch[i].print_data(i)
+    for i in range(1, len(branch)):
+        diff_lim_sel(branch[i].diffuser_cfm, branch[i],ceiling)
+        branch[i].solve_branch()
+        if branch[i].number == mainline[i].number:
+            mainline[i].local_limit = max(mainline[i].local_limit, branch[i].height + 2)
+            #else:
+                #mainline[i].local_limit
 
-# for i in range(0, len(branch)):
-# branch[i].solve_branch()
-# branch[i].print_data()
+    for i in range(1, len(mainline)):
+
+        if mainline[i].local_limit == 0:
+            diff_lim_sel(mainline[i].diffuser_cfm, mainline[i],ceiling)
+            mainline[i].solve_branch()
+
+        else:
+            mainline[i].solve_branch()
+
+        mainline[i].print_data()
+
+    for i in range(1, len(branch)):
+        # branch[i].solve_branch()
+        branch[i].print_data()
+
+    # lim_sel(branch, mainline)
+
+    # for i in range(0, len(branch)):
+    # branch[i].solve_branch()
+    # branch[i].print_data()
+    return 0
+
+main()
