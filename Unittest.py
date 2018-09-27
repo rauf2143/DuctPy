@@ -6,68 +6,82 @@ density = 0.075
 viscosity = 0.0432
 st_length = 100
 roughness = 0.006
-#colebrook_correct = 0.00065
+# colebrook_correct = 0.00065
+
+def diff_sel(branch_cfm):
+    if 0 <= branch_cfm <= 75:
+        return 6
+    elif 76 <= branch_cfm <= 169:
+        return 9
+    elif 170 <= branch_cfm <= 300:
+        return 12
+    elif 301 <= branch_cfm <= 469:
+        return 15
+    elif 470 <= branch_cfm <= 675:
+        return 18
+    elif 676 <= branch_cfm <= 909:
+        return 21
+    elif 910 <= branch_cfm <= 1200:
+        return 24
+    elif 1201 <= branch_cfm <= 1875:
+        return 30
+    else:
+        print("Diffuser out of range")
+        return 0
 
 
-def secant_solver(guess, guess2, func_eval):
-    x0 = guess
-    x1 = guess2
-
-    for j in range(1, 100):
-        if abs(x1 - x0) < 0.00001:
-            print(str(guess))
-            print(str(guess2))
-            print("f = " + str(x1))
-            return x1
-
-        elif j == 99:
-            print("Solver Malfunction")
-            return 0
-
+def diff_lim_sel(diffuser, diffuser_cfm, ceiling):
+    if diffuser == 1:
+        diffuser = diff_sel(diffuser_cfm)
+        if diffuser % 2 == 0:
+            width = diffuser + 2
+            return width
         else:
-            x2 = x1 - func_eval(x1) * (x1 - x0) / (func_eval(x1) - func_eval(x0))
-            x0 = abs(x1)
-            x1 = abs(x2)
-            # print("x1 is: " + str(x1))
-            # print("x0 is: " + str(x0))
+            width = diffuser + 3
+            return width
+
+    elif diffuser > 1:
+        width = diffuser
+        return width
+
+    elif diffuser == 0:
+        height = ceiling
+        return height
+
+    else:
+        print("Uh oh. Limit selecting went awry")
+        return 0
 
 
-def h_loss_func(cfm, dim1, dim2):
-    eq_dia = 1.3 * pow((dim1 * dim2), 0.625) / pow((dim1 + dim2), 0.25)
+class Segment:
+    def __init__(self, number, diffuser_cfm, cfm, parent=0, diffuser=0):
+        self.number = number
+        self.cfm = cfm
+        self.diffuser_cfm = diffuser_cfm
+        self.diffuser = diffuser
+        self.parent = parent
 
-    eq_area = pi * pow(eq_dia, 2) / 4 / 144
-    # print(str(eq_area))
-    fpm = cfm / eq_area
-    fps = fpm / 60
+        if self.parent != 0:
+            self.type = "Branch"
+            self.diffuser = 1
 
-    re = density * fpm * 60 * eq_dia / 12 / viscosity
+        elif self.parent == 0:
+            self.type = "Mainline"
 
-    def colebrook_eq(var):
-        lhs = 1 / sqrt(var)
-        rhs = -2 * log10((roughness / (3.7 * eq_dia)) + (2.51 / (re * sqrt(var))))
-        # print(str(eq_dia))
-        return lhs - rhs
+        self.name = self.type + "[" + str(self.number) + "]"
+        self.length = 0
+        self.fitting_len = 0
 
-    h_loss = (secant_solver(0.02, 0.03, colebrook_eq) + 0.00065) * (st_length / (eq_dia / 12)) * (
-            density / 32.174) * (
-                     pow(fps, 2) / 2) / 144 * 27.679904842545
-    return round(h_loss, 4)
-
-
-def dim2_func(cfm_seg, limit_inch):
-    def dim2_eq(var):
-        return h_loss_func(cfm_seg, limit_inch, var) - h_loss_ideal
-
-    dim_work = secant_solver(2, 6, dim2_eq)
-    return dim_work
+        self.local_limit = 0
+        self.width = 0
+        self.height = 0
+        self.dumdim = 0
+        self.h_loss = 0
 
 
-"""class MyTest(unittest.TestCase):
+# segment1 = Segment(1, 300, 600, 0, 1)
+
+
+class MyTest(unittest.TestCase):
     def test(self):
-        self.assertEqual(secant_solver(0, 1, 0, f), 8)"""
-
-print("Head Loss = " + str(h_loss_func(250, 10, 6)))
-
-if abs(s-b) >= (abs(b-c) / 2):
-
-if mflag = 1:
+        self.assertEqual(diff_lim_sel(1, 300, 12), 14)
