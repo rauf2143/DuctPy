@@ -10,9 +10,35 @@ roughness = 0.006
 colebrook_correct = 0.00065
 
 
-def brents(f, x0, x1, max_iter=50, tolerance=1e-5):
+def secant_solver(guess, guess2, func_eval):
+    x0 = guess
+    x1 = guess2
+    steps = 0
+
+    for j in range(1, 100):
+        if abs(x1 - x0) < tolerance:
+            x1 = x1
+            print("Secant Steps taken: " + str(steps))
+            print("Secant Friction Factor: " + str(x1 + .00065))
+            return x1, steps
+
+        elif j == 99:
+            print("Solver Malfunction")
+            return 0
+
+        else:
+            x2 = x1 - func_eval(x1) * (x1 - x0) / (func_eval(x1) - func_eval(x0))
+            x0 = abs(x1)
+            x1 = abs(x2)
+            steps += 1
+            # print("x1 is: " + str(x1))
+            # print("x0 is: " + str(x0))
+
+
+def brents(x0, x1, f):
     fx0 = f(x0)
     fx1 = f(x1)
+    max_iter = 50
 
     assert (fx0 * fx1) <= 0, "Root not bracketed"
 
@@ -62,7 +88,8 @@ def brents(f, x0, x1, max_iter=50, tolerance=1e-5):
             x0, x1 = x1, x0
 
         steps_taken += 1
-
+    print("Brent other Steps taken: " + str(steps_taken))
+    print("Brent other Friction Factor: " + str(x1 + .00065))
     return x1, steps_taken
 
 
@@ -86,16 +113,21 @@ def brent_solver(a, b, func):
         else:
             s = b - func(b) * (b - a) / (func(b) - func(a))
 
-        if (3 * a + b) / 4 < s < b:
+        if s < (3 * a + b) / 4 or s > b:
             s = (a + b) / 2
-        elif mflag == True and abs(s - b) >= (abs(b - c) / 2):
+            mflag = True
+        elif mflag is True and abs(s - b) >= (abs(b - c) / 2):
             s = (a + b) / 2
-        elif mflag == False and abs(s - b) >= (abs(c - d) / 2):
+            mflag = True
+        elif mflag is False and abs(s - b) >= (abs(c - d) / 2):
             s = (a + b) / 2
-        elif mflag == True and abs(b - c) < abs(tolerance):
+            mflag = True
+        elif mflag is True and abs(b - c) < abs(tolerance):
             s = (a + b) / 2
-        elif mflag == False and abs(c - d) < abs(tolerance):
+            mflag = True
+        elif mflag is False and abs(c - d) < abs(tolerance):
             s = (a + b) / 2
+            mflag = True
         else:
             mflag = False
 
@@ -110,12 +142,12 @@ def brent_solver(a, b, func):
             a, b = b, a
 
         steps += 1
-    print("Steps taken: " + str(steps))
-    print("Friction Factor: " + str(b + .00065))
-    return b
+    print("Brent mine Steps taken: " + str(steps))
+    print("Brent mine Friction Factor: " + str(b + .00065))
+    return b, steps
 
 
-def h_loss_func(cfm, dim1, dim2):
+def h_loss_func(cfm, dim1, dim2, f):
     eq_dia = 1.3 * pow((dim1 * dim2), 0.625) / pow((dim1 + dim2), 0.25)
 
     eq_area = pi * pow(eq_dia, 2) / 4 / 144
@@ -131,27 +163,72 @@ def h_loss_func(cfm, dim1, dim2):
         # print(str(eq_dia))
         return lhs - rhs
 
-    h_loss = (brent_solver(0.01, 0.04, colebrook_eq) + 0.00065) * (st_length / (eq_dia / 12)) * (
+    h_loss = (f(0.01, 0.04, colebrook_eq)[0] + 0.00065) * (st_length / (eq_dia / 12)) * (
             density / 32.174) * (
                      pow(fps, 2) / 2) / 144 * 27.679904842545
     return round(h_loss, 4)
+
 
 def dim2_func(cfm_seg, limit_inch):
     def dim2_eq(var):
         return h_loss_func(cfm_seg, limit_inch, var) - h_loss_ideal
 
-    dim_work = brent_solver(2, 98, dim2_eq)
+    dim_work, steps = brent_solver(2, 98, dim2_eq)
+    print(str(dim_work))
+    print(str(steps))
     return dim_work
+
 
 # def func(x):
 # return x-4
 
 
 f = lambda x: x ** 2 - 4
+cfm = int(input("CFM: "))
+width = int(input("Width: "))
+height = int(input("Height: "))
 
-root = dim2_func(1200, 20)
 
-# root, steps = brents(func, -10, 10)
-# print(str(brents(f, -10, 10)))
-print("Root is: " + str(root))
-# print("Steps taken: " + str(steps))
+# root_brent_other = []
+# root_brent_mine = []
+# root_secant = []
+
+
+def range_create(n):
+    return list(range(100, n + 100))
+
+
+def numbers(n):
+    return [i for i in range(100, n, 100)]
+
+
+# print(numbers(10000))
+
+# cfm = list(range(100, 10000, 100))
+
+"""for i in range(1, len(cfm)):
+    width = 18
+    height = 12
+
+    root_brent_other.append(h_loss_func(cfm[i], width, height, brents))
+
+    root_brent_mine.append(h_loss_func(cfm[i], width, height, brent_solver))
+
+    root_secant.append(h_loss_func(cfm[i], width, height, secant_solver))
+    # root, steps = brents(func, -10, 10)
+    # print(str(brents(f, -10, 10)))
+
+print("Brent other Root is: " + str(root_brent_other))
+print("Brent mine Root is: " + str(root_brent_mine))
+print("Secant Root is: " + str(root_secant))
+# print("Steps taken: " + str(steps))"""
+
+root_brent_other = h_loss_func(cfm, width, height, brents)
+
+root_brent_mine = h_loss_func(cfm, width, height, brent_solver)
+
+root_secant = h_loss_func(cfm, width, height, secant_solver)
+
+print("Brent other Root is: " + str(root_brent_other))
+print("Brent mine Root is: " + str(root_brent_mine))
+print("Secant Root is: " + str(root_secant))
