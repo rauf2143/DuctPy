@@ -31,6 +31,7 @@ def secant_solver(guess, guess2, correct, func_eval):
 
 def h_loss_func(cfm, dim1, dim2):
     eq_dia = 1.3 * pow((dim1 * dim2), 0.625) / pow((dim1 + dim2), 0.25)
+    assert eq_dia > 0, "Equivalent dia is zero"
 
     eq_area = pi * pow(eq_dia, 2) / 4 / 144
     # print(str(eq_area))
@@ -68,14 +69,28 @@ def d2_solver(cfm, user_limit):
         return dim_work
 
     def rounding_func(dim_round):
-        if dim_round % 2 <= 0.5:
+        dim_bound1 = floor(dim_round)
+        dim_bound2 = ceil(dim_round)
+        if dim_bound1 % 2 != 0:
+            dim_bound1 -= 1
+        if dim_bound2 % 2 != 0:
+            dim_bound2 += 1
+        # bound1 = h_loss_func(cfm,user_limit,dim_bound1)-h_loss_ideal
+        # bound2 = h_loss_func(cfm,user_limit,dim_bound2)-h_loss_ideal
+        if abs(h_loss_func(cfm, limit, dim_bound1) - h_loss_ideal) < abs(
+                h_loss_func(cfm, limit, dim_bound2) - h_loss_ideal):
+            dim_inch = dim_bound1
+        else:
+            dim_inch = dim_bound2
+
+        """if dim_round % 2 <= 0.5:
             dim_inch = floor(dim_round)
 
         elif 0.5 < dim_round % 2 <= 1:
             dim_inch = ceil(dim_round) + 1
 
         else:
-            dim_inch = ceil(dim_round)
+            dim_inch = ceil(dim_round)"""
 
         if user_limit >= 100:
             return dim_inch * 25
@@ -130,8 +145,12 @@ class Segment:
         self.number = number
         self.cfm = cfm
         self.diffuser_cfm = diffuser_cfm
+
         self.diffuser = diffuser
         self.parent = parent
+
+        if self.diffuser == 1:
+            self.select_diffuser()
 
         if self.parent != 0:
             self.type = "Branch"
@@ -144,16 +163,16 @@ class Segment:
         self.length = 0
         self.fitting_len = 0
 
-        self.local_limit = 0
+        # self.local_limit = 0
         self.width = 0
         self.height = 0
-        self.dumdim = 0
+        # self.dumdim = 0
         self.h_loss = 0
 
     def solve_branch(self):
         if self.width != 0 and self.height != 0:
             print("Duct is overdimensioned")
-            self.dumdim = d2_solver(self.cfm, self.width)
+            # self.dumdim = d2_solver(self.cfm, self.width)
         elif self.height != 0:
             self.width = d2_solver(self.cfm, self.height)
         elif self.width != 0:
@@ -169,6 +188,25 @@ class Segment:
         print(
             '{0:<20}{1:<10}{2:<10}{3:<10}{4:<10}{5:<10}{6:<10}'.format(self.name, self.cfm, self.width, self.height,
                                                                        self.length, self.h_loss, self.diffuser))
+    def select_diffuser(self):
+        if 0 <= self.diffuser_cfm <= 75:
+            self.diffuser = 6
+        elif 76 <= self.diffuser_cfm <= 169:
+            self.diffuser = 9
+        elif 170 <= self.diffuser_cfm <= 300:
+            self.diffuser = 12
+        elif 301 <= self.diffuser_cfm <= 469:
+            self.diffuser = 15
+        elif 470 <= self.diffuser_cfm <= 675:
+            self.diffuser = 18
+        elif 676 <= self.diffuser_cfm <= 909:
+            self.diffuser = 21
+        elif 910 <= self.diffuser_cfm <= 1200:
+            self.diffuser = 24
+        elif 1201 <= self.diffuser_cfm <= 1875:
+            self.diffuser = 30
+        else:
+            print("Diffuser out of range")
 
     # def input_data(self)
 
@@ -243,5 +281,5 @@ def main():
     # branch[i].print_data()
     return 0
 
-
-main()
+if __name__ == "__main__":
+    main()
