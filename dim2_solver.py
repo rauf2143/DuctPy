@@ -18,19 +18,22 @@ def secant_solver(guess, guess2, func_eval, tolerance):
     x1 = guess2
     steps = 0
 
-    for j in range(1, 100):
+    for j in range(1, 101):
+        fx0 = func_eval(x0)
+        fx1 = func_eval(x1)
+
         if abs(x1 - x0) < tolerance:
             x1 = x1
             # print("Secant Steps taken: " + str(steps))
             # print("Secant Friction Factor: " + str(x1 + .00065))
             return x1
 
-        elif j == 99:
+        elif j == 100:
             print("Solver Malfunction")
             return 0
 
         else:
-            x2 = x1 - func_eval(x1) * (x1 - x0) / (func_eval(x1) - func_eval(x0))
+            x2 = x1 - fx1 * (x1 - x0) / (fx1 - fx0)
             x0 = abs(x1)
             x1 = abs(x2)
             steps += 1
@@ -106,22 +109,24 @@ def h_loss_func(cfm, dim1, dim2):
 
 
 def main():
-    # cfm = int(input("CFM = "))
-    # limit = int(input("Limit = "))
+    cfm = int(input("CFM = "))
+    limit = int(input("Limit = "))
     # height = int(input("Height = "))
-    limit = 12
-    for i in range(100, 5000, 100):
+    #limit = 12
+    """for i in range(100, 5000, 100):
         print("CFM = " + str(i))
         print("Limit = " + str(limit))
         print("Width = " + str(d2_solver(i, limit)))
         if i % 500 == 0:
-            limit += 2
+            limit += 2"""
+
+    print(d2_solver(cfm,limit))
 
 
 if __name__ == '__main__':
-    start_time = time.time()
+    #start_time = time.time()
     main()
-    print(time.time() - start_time)
+    #print(time.time() - start_time)
 
 
 class MyTest(unittest.TestCase):
