@@ -229,7 +229,7 @@ def main():
     branch = [Segment("dummy", 0, -1)]
 
     for i in range(1, 20):
-        print("Enter CFM " + str(i) + ": ")
+        print("Enter CFM [" + str(i) + "]: ")
         cfm_inst = int(input())
 
         if cfm_inst == -1:
